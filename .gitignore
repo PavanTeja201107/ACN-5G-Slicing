@@ -1,4 +1,31 @@
+# Python
 .venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+
+# Jupyter
 .ipynb_checkpoints/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.yaml
+secrets.yml
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Database and packet captures
+*.pcap
+*.pcapng
+mongod.lock
+
+# Editor and operating system
+.vscode/
+.DS_Store
+Thumbs.db
