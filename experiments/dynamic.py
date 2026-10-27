@@ -36,6 +36,13 @@ COOLDOWN = 10
 INCREASE_THRESHOLD = 0.80
 DECREASE_THRESHOLD = 0.50
 
+# Prediction method (Random Forest extension).
+#   "ma" = original moving-average predictor (default, unchanged behaviour)
+#   "rf" = Random Forest predictor (controller/ml_predictor.py)
+# Select from the command line: python -m experiments.dynamic --predictor rf
+PREDICTOR = "ma"
+MODEL_PATH = None  # None -> controller.ml_predictor.DEFAULT_MODEL_PATH
+
 
 # ============================================================
 # Helper functions
@@ -162,6 +169,27 @@ def main():
     total_reconfiguration_cost = 0.0
 
     # --------------------------------------------------------
+    # Optional Random Forest predictor (fails loudly if model missing)
+    # --------------------------------------------------------
+
+    rf_predictor = None
+
+    if PREDICTOR == "rf":
+        from controller.ml_predictor import RandomForestPredictor
+
+        rf_predictor = RandomForestPredictor.load(MODEL_PATH)
+
+        print(
+            f"Prediction method: RANDOM FOREST "
+            f"({rf_predictor.model_path})"
+        )
+
+    elif PREDICTOR != "ma":
+        raise ValueError(
+            f"Unknown PREDICTOR: {PREDICTOR!r} (use 'ma' or 'rf')"
+        )
+
+    # --------------------------------------------------------
     # Results
     # --------------------------------------------------------
 
@@ -202,6 +230,19 @@ def main():
             )
             for slice_name in demand
         }
+
+        # ----------------------------------------------------
+        # Random Forest extension: replace the moving-average
+        # prediction. The moving-average value is kept for logging.
+        # ----------------------------------------------------
+
+        ma_prediction = prediction
+
+        if rf_predictor is not None:
+
+            rf_result = rf_predictor.predict(demand_history)
+
+            prediction = rf_result.values
 
         # ----------------------------------------------------
         # Controller demand
@@ -458,6 +499,22 @@ def main():
             "fairness": fairness,
         }
 
+        if rf_predictor is not None:
+
+            result["prediction_source"] = "rf"
+
+            for slice_name in demand:
+
+                result[f"{slice_name}_ma_prediction_mbps"] = (
+                    ma_prediction[slice_name]
+                )
+                result[f"{slice_name}_rf_raw_mbps"] = (
+                    rf_result.raw[slice_name]
+                )
+                result[f"{slice_name}_rf_flag"] = (
+                    rf_result.flags[slice_name]
+                )
+
         results.append(result)
 
     # ========================================================
@@ -507,6 +564,12 @@ def main():
         OUTPUT_FILE,
         index=False
     )
+
+    if rf_predictor is not None:
+
+        rf_predictor.write_run_info(
+            OUTPUT_FILE + ".run_info.json"
+        )
 
     # ========================================================
     # Print summary
@@ -618,4 +681,34 @@ def main():
 # ============================================================
 
 if __name__ == "__main__":
+
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Dynamic slicing experiment."
+    )
+    parser.add_argument(
+        "--predictor",
+        choices=["ma", "rf"],
+        default="ma",
+        help="ma = original moving average (default); "
+             "rf = Random Forest",
+    )
+    parser.add_argument("--model", default=None)
+    parser.add_argument("--input", default=None)
+    parser.add_argument("--output", default=None)
+    cli = parser.parse_args()
+
+    PREDICTOR = cli.predictor
+    MODEL_PATH = cli.model
+
+    if cli.input:
+        INPUT_FILE = cli.input
+
+    if cli.output:
+        OUTPUT_FILE = cli.output
+    elif PREDICTOR == "rf":
+        # Never overwrite the original moving-average results.
+        OUTPUT_FILE = "data/processed/dynamic_rf_results.csv"
+
     main()
