@@ -1,0 +1,14 @@
+{
+  "predictor": "random_forest",
+  "model_path": "models\\rf_traffic_predictor.joblib",
+  "model_sha256": "f5b3aa3abe211a2f943ca4ae1b9749d113a467cd7ff83e60712132af8a0d0d73",
+  "n_features": 23,
+  "horizon": 1,
+  "target_mode": "delta",
+  "prediction_counts": {
+    "calls": 1080,
+    "ok": 3240,
+    "clipped_negative": 0,
+    "fallback_last_value": 0
+  }
+}

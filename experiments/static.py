@@ -99,6 +99,20 @@ def main():
             "urllc_utilization": qos_results["urllc"]["utilization"],
             "iot_utilization": qos_results["iot"]["utilization"],
 
+            # Calibrated demand pressure (separate from QoS violation)
+            "embb_demand_pressure": qos_results["embb"]["demand_pressure"],
+            "urllc_demand_pressure": qos_results["urllc"]["demand_pressure"],
+            "iot_demand_pressure": qos_results["iot"]["demand_pressure"],
+            "embb_demand_threshold_exceeded": qos_results["embb"][
+                "demand_threshold_exceeded"
+            ],
+            "urllc_demand_threshold_exceeded": qos_results["urllc"][
+                "demand_threshold_exceeded"
+            ],
+            "iot_demand_threshold_exceeded": qos_results["iot"][
+                "demand_threshold_exceeded"
+            ],
+
             # Latency
             "embb_latency_ms": qos_results["embb"]["latency_ms"],
             "urllc_latency_ms": qos_results["urllc"]["latency_ms"],

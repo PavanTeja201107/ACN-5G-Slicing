@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from controller.thresholds import slice_thresholds
+
 
 # ---------------------------------------------------------
 # Slice configuration
@@ -9,15 +11,12 @@ import pandas as pd
 SLICE_CONFIG = {
     "embb": {
         "base_latency_ms": 20,
-        "latency_target_ms": 50,
     },
     "urllc": {
         "base_latency_ms": 5,
-        "latency_target_ms": 20,
     },
     "iot": {
         "base_latency_ms": 30,
-        "latency_target_ms": 100,
     },
 }
 
@@ -48,6 +47,7 @@ def calculate_slice_qos(
     """
 
     config = SLICE_CONFIG[slice_name]
+    thresholds = slice_thresholds(slice_name)
 
     # Avoid division by zero
     if allocated_mbps <= 0:
@@ -86,9 +86,10 @@ def calculate_slice_qos(
 
     # QoS violation
     qos_violation = (
-        latency > config["latency_target_ms"]
-        or packet_loss > 0.01
+        latency > thresholds["latency_threshold_ms"]
+        or packet_loss > thresholds["packet_loss_threshold"]
     )
+    demand_pressure = demand_mbps / thresholds["demand_threshold_mbps"]
 
     return {
         "demand_mbps": demand_mbps,
@@ -98,6 +99,8 @@ def calculate_slice_qos(
         "latency_ms": latency,
         "utilization": utilization,
         "qos_violation": qos_violation,
+        "demand_pressure": demand_pressure,
+        "demand_threshold_exceeded": demand_pressure > 1.0,
     }
 
 

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "source": "synthetic traffic dataset empirical p95 calibration",
+  "quantile": 0.95,
+  "total_capacity_mbps": 100.0,
+  "reference_allocation_pct": {
+    "embb": 50.0,
+    "urllc": 30.0,
+    "iot": 20.0
+  },
+  "limitations": [
+    "Latency and packet-loss thresholds are descriptive percentiles of the existing simplified QoS model.",
+    "They are not independently validated application SLAs or real 5G performance guarantees.",
+    "Packet loss is a proxy for unserved demand, not measured network packet loss.",
+    "The calibrated URLLC latency value must not be presented as a validated URLLC latency requirement."
+  ],
+  "slices": {
+    "embb": {
+      "demand_threshold_mbps": 70.7370937069,
+      "latency_threshold_ms": 61.4741874139,
+      "packet_loss_threshold": 0.2931514126
+    },
+    "urllc": {
+      "demand_threshold_mbps": 43.6164964912,
+      "latency_threshold_ms": 50.3883216374,
+      "packet_loss_threshold": 0.3121867428
+    },
+    "iot": {
+      "demand_threshold_mbps": 14.2901527569,
+      "latency_threshold_ms": 30.0,
+      "packet_loss_threshold": 0.0
+    }
+  }
+}

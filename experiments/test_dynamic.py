@@ -31,7 +31,7 @@ def main():
     print()
     print("Running controller...")
 
-    new_allocation, changed = dynamic_reallocation(
+    new_allocation, changed, _, _ = dynamic_reallocation(
         demand,
         allocation,
         step=5,

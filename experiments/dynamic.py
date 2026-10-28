@@ -9,6 +9,7 @@ from controller.controller import (
 )
 from controller.stability import hysteresis_decision
 from controller.reconfiguration import calculate_reconfiguration_cost
+from controller.thresholds import demand_pressure
 
 
 # ============================================================
@@ -261,6 +262,13 @@ def main():
             )
             for slice_name in demand
         }
+        demand_pressures = {
+            slice_name: demand_pressure(
+                demand[slice_name],
+                slice_name,
+            )
+            for slice_name in demand
+        }
 
         # ----------------------------------------------------
         # Calculate current utilization
@@ -285,6 +293,8 @@ def main():
                 increase_threshold=INCREASE_THRESHOLD,
                 decrease_threshold=DECREASE_THRESHOLD,
             )
+            if demand_pressures[slice_name] > 1.0:
+                decisions[slice_name] = "increase"
 
             controller_state[slice_name] = decisions[
                 slice_name
@@ -341,7 +351,14 @@ def main():
                 new_allocation, changed, overloaded, donor = (
                     dynamic_reallocation(
                         controller_demand,
-                        allocation
+                        allocation,
+                        demand_pressures={
+                            slice_name: demand_pressure(
+                                controller_demand[slice_name],
+                                slice_name,
+                            )
+                            for slice_name in controller_demand
+                        },
                     )
                 )
 
@@ -442,6 +459,20 @@ def main():
             "embb_utilization": qos_results["embb"]["utilization"],
             "urllc_utilization": qos_results["urllc"]["utilization"],
             "iot_utilization": qos_results["iot"]["utilization"],
+
+            # Calibrated demand pressure (separate from QoS violation)
+            "embb_demand_pressure": demand_pressures["embb"],
+            "urllc_demand_pressure": demand_pressures["urllc"],
+            "iot_demand_pressure": demand_pressures["iot"],
+            "embb_demand_threshold_exceeded": qos_results["embb"][
+                "demand_threshold_exceeded"
+            ],
+            "urllc_demand_threshold_exceeded": qos_results["urllc"][
+                "demand_threshold_exceeded"
+            ],
+            "iot_demand_threshold_exceeded": qos_results["iot"][
+                "demand_threshold_exceeded"
+            ],
 
             # Latency
             "embb_latency_ms": qos_results["embb"]["latency_ms"],
