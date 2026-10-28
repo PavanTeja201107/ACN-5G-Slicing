@@ -108,8 +108,26 @@ with the virtual environment active. Use `python` (Windows: `python`/`py`).
 
 **Validate the setup**
 ```bash
-python -m pytest tests -q      # expect: 26 passed
+python -m pytest tests -q      # expect: all repository tests to pass
 ```
+
+**Launch the results dashboard**
+```bash
+streamlit run streamlit_app.py
+```
+The dashboard visualizes the seeded synthetic traffic data, Random Forest versus
+moving-average versus persistence accuracy, the Static/Dynamic-MA/Dynamic-RF
+comparison, allocation traces, multi-seed results, and the RF model/run metadata.
+Install `requirements-ml.txt` first. It reads the generated CSV and JSON artifacts
+from the repository and does not retrain the model or rerun experiments.
+
+The dashboard also defines the comparison direction for each metric: lower is
+better for MAE, RMSE, latency, packet loss, QoS violations, reconfigurations,
+reconfiguration cost, and oscillations; higher is better for throughput and
+fairness. Reconfiguration metrics apply only to Dynamic-MA and Dynamic-RF because
+Static never reallocates. The overall dashboard recommendation uses the lowest
+mean total QoS violations across the ten independent seeds and displays the
+underlying values and exceptions rather than changing experiment results.
 
 ## 6. Run everything, in order
 
@@ -156,7 +174,7 @@ Command-line selection of the predictor (no source edits): `--predictor ma|rf` a
 Invalid predictions: negative -> clipped to 0 (flag), NaN/inf -> replaced by the last observed demand
 (flag). They are counted, never hidden, and never relabelled as MA.
 
-## 8. Results actually obtained (this environment: CPU, Python 3.12.3, scikit-learn 1.8.0)
+## 8. Results actually obtained (this environment: CPU, Python 3.12.2, scikit-learn 1.9.1)
 
 These numbers were produced by the commands above; your run should match them (deterministic) if the
 library versions match; other versions may differ slightly.
@@ -165,10 +183,10 @@ library versions match; other versions may differ slightly.
 
 | Dataset | Predictor | MAE | RMSE |
 |---|---|---|---|
-| Held-out test runs (8 unseen seeds) | **RF** | **0.876** | **2.938** |
+| Held-out test runs (8 unseen seeds) | **RF** | **0.878** | **2.940** |
 | | MA (existing) | 2.442 | 5.230 |
 | | persistence (reference) | 1.055 | 3.353 |
-| Original stream (traffic_dataset.csv) | **RF** | **0.615** | **2.400** |
+| Original stream (traffic_dataset.csv) | **RF** | **0.618** | **2.406** |
 | | MA (existing) | 2.107 | 4.705 |
 | | persistence (reference) | 0.839 | 2.945 |
 
@@ -181,27 +199,29 @@ the scenario templates seen in training.
 
 | Metric | Static | Dynamic-MA | Dynamic-RF |
 |---|---|---|---|
-| Total QoS violations | 368 | 301 | 298 |
-| eMBB / URLLC / IoT violations | 140 / 198 / 30 | 103 / 142 / 56 | 100 / 148 / 50 |
+| Total QoS violations | 138 | 132 | 127 |
+| eMBB / URLLC / IoT violations | 54 / 54 / 30 | 0 / 76 / 56 | 0 / 76 / 51 |
 | URLLC p95 latency (ms) | 50.4 | 80.8 | 81.8 |
-| Avg fairness (Jain) | 0.877 | 0.789 | 0.794 |
-| Reconfigurations / cost (%) / oscillations | 0 / 0 / 0 | 26 / 130 / 9 | 27 / 135 / 9 |
+| Avg fairness (Jain) | 0.877 | 0.791 | 0.797 |
+| Reconfigurations / cost (%) / oscillations | N/A | 29 / 135 / 9 | 30 / 140 / 9 |
 
 **10 independent held-out streams** (mean over seeds 4001-4010; std in `results/multiseed/summary.csv`)
 
 | Metric | Static | Dynamic-MA | Dynamic-RF |
 |---|---|---|---|
-| Total QoS violations (mean) | 335.7 | 290.3 | 272.8 |
-| Reconfigurations (mean) | 0 | 25.2 | 25.8 |
+| Total QoS violations (mean) | 138.6 | 141.3 | 131.2 |
+| Reconfigurations (mean) | N/A | 27.6 | 28.1 |
 | URLLC p95 latency (ms) | 58.2 | 62.1 | 65.2 |
 
-Paired per-seed difference RF - MA in violations: mean -17.5 (std 9.7, range -32 to -4); RF had fewer
-violations in 10/10 seeds. Static had fewer violations than RF in 1/10 seeds and than MA in 2/10.
+Paired per-seed results: RF had fewer total QoS violations than MA in 8/10
+seeds and more in 2/10. Static has no dynamic reconfiguration metrics because
+its allocation is fixed.
 
 **Interpretation (what the data supports):**
 * RF predicts next-interval demand about 3x more accurately than the moving average.
-* That accuracy translated into only a **small** QoS gain (about 1% on the original stream, about 6% on
-  average over 10 streams). No significance test was done; seeds are perturbations of the same templates.
+* That accuracy translated into a small single-run QoS gain and a lower mean
+  violation count over the ten streams. No significance test was done; seeds are
+  perturbations of the same templates.
 * Why so small (measured): the controller input `max(current, prediction)` differed between RF and MA
   by only about 1 Mbps on average, while the controller moves 5-point steps with a 10-interval cooldown.
   Reconfiguration timing is almost identical in both runs (same first three actions). Allocation-step
@@ -226,6 +246,7 @@ violations in 10/10 seeds. Static had fewer violations than RF in 1/10 seeds and
 | `results/comparison_three_way.csv`, `plots/three_way_*.png` | 3-way comparison |
 | `results/prediction_accuracy_in_loop.csv` | accuracy of the predictions each controller really used |
 | `results/multiseed/per_seed_metrics.csv`, `summary.csv` | multi-seed results (`work/` holds temp streams) |
+| `streamlit_app.py` | Streamlit dashboard for seeded traffic, prediction accuracy, three-way results, multi-seed results, and model metadata |
 
 **Clean generated files safely** (original inputs/outputs are not touched):
 ```bash
